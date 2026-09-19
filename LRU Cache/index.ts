@@ -21,10 +21,10 @@ type LRUNode<T> = {
 }
 
 function createNode<V>(value: V): LRUNode<V> {
-    return {value}
+    return { value }
 }
 
-class LRUCache<K,V> {
+class LRUCache<K, V> {
     private length: number;
     private head?: LRUNode<V>
     private tail?: LRUNode<V>
@@ -41,10 +41,25 @@ class LRUCache<K,V> {
 
     update(key: K, value: V): void {
         // Does it exists?
+        let node = this.lookup.get(key);
 
-        // If it doesn't, we need to insert
-        //  - Check the capacity, evict elements if over.
-        // If it does exists, we need to update to the front of the list and update the value
+        // If it doesn't, we need to create & insert
+        if (!node) {
+            node = createNode(value)
+            //  - Check the capacity, evict elements if over.
+            this.prepend(node);
+            this.trimCache();
+
+            // Add the newly added node in the lookup and reverse lookup
+            this.lookup.set(key, node)
+            this.reverseLookup.set(node, key)
+        } else {
+            // If it does exists, we need to update to the front of the list and update the value
+            this.detach(node)
+            this.prepend(node)
+
+            node.value = value;
+        }
     }
 
     get(key: K): V | undefined {
@@ -53,13 +68,57 @@ class LRUCache<K,V> {
         if (!node) return undefined;
 
         // Update the value we found and move it to the front (As it's now most recently used)
-
-
+        this.detach(node) // Removed from LL, but still on lookup and reverseLookup
+        this.prepend(node) // Adds the node to the front.  
 
         // Return out the value found or undefined if not exists
+        return node.value
     }
 
-    private detach(node: LRUNode<V>) {}
+    private detach(node: LRUNode<V>) {
+        if (node.prev) {
+            node.prev.next = node.next;
+        }
 
-    private prepend(node: LRUNode<V>) {}
+        if (node.next) {
+            node.next.prev = node.prev;
+        }
+
+        if (this.head === node) {
+            this.head = this.head.next;
+        }
+
+        if (this.tail === node) {
+            this.tail = this.tail.prev
+        }
+
+        node.prev = undefined;
+        node.next = undefined;
+    }
+
+    private prepend(node: LRUNode<V>) {
+        if (!this.head) {
+            this.head = this.tail = node;
+            return;
+        }
+
+        node.next = this.head
+        this.head.prev = node;
+        this.head = node;
+    }
+
+    private trimCache(): void {
+        if (this.length <= this.capacity) return
+
+        // Remove the tail
+        const tail = this.tail as LRUNode<V>// Hold on to a ref of the tail
+        this.detach(this.tail as LRUNode<V>)
+
+        // Remove the tail from the lookup - Trim the cache
+        const key = this.reverseLookup.get(tail) as K;
+
+        this.lookup.delete(key);
+        this.reverseLookup.delete(tail);
+        this.length--;
+    }
 }
