@@ -75,6 +75,18 @@ class LRUCache<K, V> {
         return node.value
     }
 
+    printCache() {
+        let current = this.head;
+        let result = [];
+
+        while (current) {
+            result.push(current.value);
+            current = current.next;
+        }
+
+        console.log(result.join(" <-> ") + " -> null");
+    }
+
     private detach(node: LRUNode<V>) {
         if (node.prev) {
             node.prev.next = node.next;
@@ -122,3 +134,19 @@ class LRUCache<K, V> {
         this.length--;
     }
 }
+
+
+const cache = new LRUCache<string, number>(5)
+
+cache.update("1", 1)
+cache.update("2", 2)
+cache.update("3", 3)
+cache.update("4", 4)
+cache.update("5", 5)
+
+
+cache.get("4")
+cache.get("1")
+cache.get("2")
+
+cache.printCache()
